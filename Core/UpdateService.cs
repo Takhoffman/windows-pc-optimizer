@@ -15,7 +15,7 @@ public sealed record UpdateInfo(Version Version, string TagName, string Download
 /// </summary>
 public static class UpdateService
 {
-    private const string Owner = "Takhoffman";
+    private const string Owner = "takhoffman";
     private const string Repo = "windows-pc-optimizer";
 
     private static readonly HttpClient Http = CreateClient();
