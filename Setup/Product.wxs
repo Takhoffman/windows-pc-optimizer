@@ -4,7 +4,7 @@
 
   <Package Name="Velocity - Gaming PC Optimizer"
             Manufacturer="Tak Hoffman"
-            Version="1.0.2"
+            Version="1.0.3"
             UpgradeCode="A3079EA3-01EB-4FF3-8094-04A7A8D43D01"
             Language="1033"
             Scope="perMachine"

@@ -10,7 +10,7 @@
     <AssemblyName>Velocity</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <Authors>takhoffman</Authors>
     <Product>Velocity — Gaming PC Optimizer</Product>
     <!-- WPF resolves specific cultures (e.g. en-US) for text layout, so the app

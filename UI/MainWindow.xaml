@@ -48,7 +48,7 @@
                         <TextBlock Text="&#xEA18;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Success}"/>
                         <TextBlock Text="Administrator" Margin="7,0,0,0" FontSize="11" Foreground="{StaticResource TextSecondary}"/>
                     </StackPanel>
-                    <TextBlock Text="v1.0.2 · every change is revertible" FontSize="10.5" Foreground="{StaticResource TextTertiary}" Margin="0,6,0,0"/>
+                    <TextBlock Text="v1.0.3 · every change is revertible" FontSize="10.5" Foreground="{StaticResource TextTertiary}" Margin="0,6,0,0"/>
                 </StackPanel>
 
                 <!-- Nav -->
@@ -93,6 +93,28 @@
                         <TextBlock Text="Dashboard" Style="{StaticResource PageTitle}"/>
                         <TextBlock Text="Your system at a glance. Velocity only runs while this window is open — nothing stays behind eating frames."
                                    Style="{StaticResource PageSubtitle}" Margin="0,6,0,20"/>
+
+                        <!-- Update banner -->
+                        <Border Background="{StaticResource AccentSoft}" BorderBrush="{StaticResource Accent}"
+                                BorderThickness="1" CornerRadius="12" Padding="16,12" Margin="0,0,0,16"
+                                Visibility="{Binding UpdateAvailable, Converter={StaticResource BoolToVis}}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="&#xE895;" Style="{StaticResource Icon}" Foreground="{StaticResource Accent}" FontSize="16"/>
+                                <StackPanel Grid.Column="1" Margin="10,0,12,0" VerticalAlignment="Center">
+                                    <TextBlock Text="Update available" FontSize="13" FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextPrimary}"/>
+                                    <TextBlock Text="{Binding UpdateBanner}" FontSize="11.5"
+                                               Foreground="{StaticResource TextSecondary}" Margin="0,2,0,0"/>
+                                </StackPanel>
+                                <Button Grid.Column="2" Content="Update now" Style="{StaticResource PrimaryButton}"
+                                        VerticalAlignment="Center" Command="{Binding UpdateNowCommand}"/>
+                            </Grid>
+                        </Border>
 
                         <!-- Restart banner -->
                         <Border Background="{StaticResource WarningSoft}" BorderBrush="{StaticResource Warning}"

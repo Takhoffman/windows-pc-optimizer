@@ -123,6 +123,7 @@ public sealed class MainViewModel : ObservableObject
     private string _powerPlanName = "—";
     private int _appliedCount;
     private bool _hasBackups;
+    private UpdateInfo? _update;
 
     public MainViewModel()
     {
@@ -140,6 +141,7 @@ public sealed class MainViewModel : ObservableObject
             var max = Profiles.FirstOrDefault(p => p.Profile.Id == "max-performance");
             if (max is not null) _ = ApplyProfileAsync(max);
         }, _ => !IsBusy);
+        UpdateNowCommand = new RelayCommand(_ => _ = UpdateNowAsync(), _ => UpdateAvailable && !IsBusy);
     }
 
     public IReadOnlyList<TweakViewModel> AllTweaks { get; }
@@ -149,6 +151,12 @@ public sealed class MainViewModel : ObservableObject
 
     public RelayCommand RevertAllCommand { get; }
     public RelayCommand ApplyMaxCommand { get; }
+    public RelayCommand UpdateNowCommand { get; }
+
+    public bool UpdateAvailable => _update is not null;
+    public string UpdateBanner => _update is null
+        ? ""
+        : $"Velocity {_update.Version} is available — you're on {UpdateService.CurrentVersion.ToString(3)}.";
 
     public bool IsBusy { get => _isBusy; private set { if (Set(ref _isBusy, value)) OnPropertyChanged(nameof(IsIdle)); } }
     public bool IsIdle => !IsBusy;
@@ -187,6 +195,51 @@ public sealed class MainViewModel : ObservableObject
             foreach (var (vm, on) in (Dictionary<TweakViewModel, bool>)result)
                 vm.SetState(on);
         });
+
+        _ = CheckForUpdatesAsync(); // fire-and-forget; never blocks startup
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        var info = await UpdateService.CheckForUpdateAsync();
+        if (info is null) return;
+        _update = info;
+        OnPropertyChanged(nameof(UpdateAvailable));
+        OnPropertyChanged(nameof(UpdateBanner));
+    }
+
+    public async Task UpdateNowAsync()
+    {
+        if (_update is null || IsBusy) return;
+
+        var answer = MessageBox.Show(
+            Application.Current.MainWindow!,
+            $"Update to Velocity {_update.Version}?\n\nThe installer will download (~60 MB), Velocity will close to apply it, and then reopen automatically.",
+            "Update available", MessageBoxButton.YesNo, MessageBoxImage.Question);
+        if (answer != MessageBoxResult.Yes) return;
+
+        if (!await _gate.WaitAsync(0)) return;
+        IsBusy = true;
+        BusyText = $"Downloading update {_update.Version}…";
+        try
+        {
+            var progress = new Progress<double>(p => BusyText = $"Downloading update {_update.Version}…  {p:P0}");
+            var msi = await UpdateService.DownloadAsync(_update, progress);
+
+            BusyText = "Starting installer…";
+            var exePath = Environment.ProcessPath ?? "";
+            UpdateService.InstallAndRelaunch(msi, exePath);
+            Application.Current.Shutdown();
+        }
+        catch (Exception ex)
+        {
+            IsBusy = false;
+            _gate.Release();
+            MessageBox.Show(Application.Current.MainWindow!,
+                "Could not download the update:\n\n" + ex.Message +
+                "\n\nYou can always download it manually from the GitHub releases page.",
+                "Update failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 
     public async Task ToggleTweakAsync(TweakViewModel vm, bool enable)
