@@ -215,12 +215,17 @@ public sealed class NagleTweak : RegistryTweak
 }
 
 /// <summary>
-/// Activates the hidden "Ultimate Performance" power plan, remembering the
-/// previously active plan (and any plan we had to create) so it can be undone.
+/// Activates the best available high-performance power plan. Prefers the hidden
+/// "Ultimate Performance" plan; if this machine's Windows edition/hardware does
+/// not offer it (common on laptops, VMs and some SKUs), it falls back to the
+/// always-present built-in "High performance" plan. Remembers the previously
+/// active plan (and any plan it had to create) so the change can be undone.
 /// </summary>
 public sealed class PowerPlanTweak : Tweak
 {
     private const string UltimateGuid = "e9a42b02-d5df-448d-aa66-1f88b8f60c53";
+    // Built-in "High performance" scheme GUID — present on every Windows install.
+    private const string HighPerfGuid = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c";
     private static readonly Regex GuidRx = new("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
 
     public static string? GetActiveScheme(out string? friendlyName)
@@ -238,13 +243,33 @@ public sealed class PowerPlanTweak : Tweak
     {
         var active = GetActiveScheme(out var name);
         if (active is null) return false;
-        if (active == UltimateGuid) return true;
-        if (name is not null && name.Contains("ultimate", StringComparison.OrdinalIgnoreCase)) return true;
+        if (active == UltimateGuid || active == HighPerfGuid) return true;
+        if (name is not null &&
+            (name.Contains("ultimate", StringComparison.OrdinalIgnoreCase) ||
+             name.Contains("high performance", StringComparison.OrdinalIgnoreCase)))
+            return true;
 
         var store = BackupStore.Load();
         return store.Tweaks.TryGetValue(Id, out var b)
-            && b.Data.TryGetValue("activatedScheme", out var created)
-            && created == active;
+            && b.Data.TryGetValue("activatedScheme", out var activated)
+            && activated == active;
+    }
+
+    /// <summary>Returns the GUID of an existing scheme whose name contains <paramref name="namePart"/>, or null.</summary>
+    private static string? FindSchemeByName(string namePart)
+    {
+        var (code, output) = Run("powercfg", "/L");
+        if (code != 0) return null;
+        foreach (var line in output.Split('\n'))
+        {
+            var paren = Regex.Match(line, @"\(([^)]+)\)");
+            if (paren.Success && paren.Groups[1].Value.Contains(namePart, StringComparison.OrdinalIgnoreCase))
+            {
+                var g = GuidRx.Match(line);
+                if (g.Success) return g.Value.ToLowerInvariant();
+            }
+        }
+        return null;
     }
 
     public override void Apply(BackupStore store)
@@ -254,20 +279,47 @@ public sealed class PowerPlanTweak : Tweak
         if (!backup.Data.ContainsKey("previousScheme"))
             backup.Data["previousScheme"] = previous;
 
-        var (code, _) = Run("powercfg", $"/setactive {UltimateGuid}");
-        if (code != 0)
+        // 1. Ultimate Performance if the template GUID is directly activatable.
+        if (Run("powercfg", $"/setactive {UltimateGuid}").exitCode == 0)
         {
-            // Plan not present on this machine — duplicate the hidden template, then activate the copy.
+            backup.Data["activatedScheme"] = UltimateGuid;
+        }
+        // 2. An Ultimate Performance plan that already exists under another GUID
+        //    (Windows stores it this way once the hidden template has been unlocked).
+        else if (FindSchemeByName("Ultimate Performance") is { } existingUltimate &&
+                 Run("powercfg", $"/setactive {existingUltimate}").exitCode == 0)
+        {
+            backup.Data["activatedScheme"] = existingUltimate; // pre-existing; not ours to delete
+        }
+        else
+        {
+            // 3. Try to create Ultimate Performance from its hidden template.
             var (dupCode, dupOut) = Run("powercfg", $"-duplicatescheme {UltimateGuid}");
             var m = GuidRx.Match(dupOut);
-            if (dupCode != 0 || !m.Success)
-                throw new InvalidOperationException("Could not create the Ultimate Performance power plan:\n" + dupOut.Trim());
-
-            var created = m.Value.ToLowerInvariant();
-            backup.Data["activatedScheme"] = created;
-            var (actCode, actOut) = Run("powercfg", $"/setactive {created}");
-            if (actCode != 0)
-                throw new InvalidOperationException("Could not activate the power plan:\n" + actOut.Trim());
+            if (dupCode == 0 && m.Success)
+            {
+                var created = m.Value.ToLowerInvariant();
+                backup.Data["createdScheme"] = created;   // deletable on revert (we made it)
+                backup.Data["activatedScheme"] = created;
+                Run("powercfg", $"/setactive {created}");
+            }
+            // 4. Fall back to the built-in High performance plan, which always exists.
+            else if (Run("powercfg", $"/setactive {HighPerfGuid}").exitCode == 0)
+            {
+                backup.Data["activatedScheme"] = HighPerfGuid;
+            }
+            else if (FindSchemeByName("High performance") is { } existingHigh &&
+                     Run("powercfg", $"/setactive {existingHigh}").exitCode == 0)
+            {
+                backup.Data["activatedScheme"] = existingHigh;
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    "Could not activate a high-performance power plan on this system.\n\n" +
+                    "This can happen on some laptops or virtual machines where the OEM " +
+                    "restricts power plans.");
+            }
         }
         store.Save();
     }
@@ -278,7 +330,8 @@ public sealed class PowerPlanTweak : Tweak
         {
             if (backup.Data.TryGetValue("previousScheme", out var prev))
                 Run("powercfg", $"/setactive {prev}");
-            if (backup.Data.TryGetValue("activatedScheme", out var created))
+            // Only delete a scheme we actually created; never delete a built-in plan.
+            if (backup.Data.TryGetValue("createdScheme", out var created))
                 Run("powercfg", $"-delete {created}");
         }
         store.Remove(Id);

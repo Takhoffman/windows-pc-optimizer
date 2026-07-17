@@ -4,7 +4,7 @@
 
   <Package Name="Velocity - Gaming PC Optimizer"
             Manufacturer="Tak Hoffman"
-            Version="1.0.0"
+            Version="1.0.2"
             UpgradeCode="A3079EA3-01EB-4FF3-8094-04A7A8D43D01"
             Language="1033"
             Scope="perMachine"
@@ -17,6 +17,9 @@
 
     <!-- ARP (Add/Remove Programs) -->
     <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+    <!-- amus: on a same-or-higher reinstall, force all files to be laid down
+         even when versions match, so unversioned payloads never get skipped. -->
+    <Property Id="REINSTALLMODE" Value="amus" />
     <Property Id="ARPHELPLINK" Value="https://github.com/takhoffman/windows-pc-optimizer" />
     <Property Id="ARPNOREPAIR" Value="1" />
     <Icon Id="AppIcon.ico" SourceFile="$(var.PublishDir)\..\Assets\app.ico" />

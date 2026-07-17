@@ -111,8 +111,8 @@ public static class Catalog
         new PowerPlanTweak
         {
             Id = "ultimate-power",
-            Name = "Ultimate Performance power plan",
-            Description = "Activates Windows' hidden Ultimate Performance plan: no core parking, no micro-latency from power state switching.",
+            Name = "Max performance power plan",
+            Description = "Activates Windows' hidden Ultimate Performance plan (no core parking, no power-state latency). Falls back to High performance on systems that don't offer it.",
             Category = "CPU & Scheduling",
         },
 

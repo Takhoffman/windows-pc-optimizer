@@ -48,7 +48,7 @@
                         <TextBlock Text="&#xEA18;" Style="{StaticResource Icon}" FontSize="12" Foreground="{StaticResource Success}"/>
                         <TextBlock Text="Administrator" Margin="7,0,0,0" FontSize="11" Foreground="{StaticResource TextSecondary}"/>
                     </StackPanel>
-                    <TextBlock Text="v1.0.0 · every change is revertible" FontSize="10.5" Foreground="{StaticResource TextTertiary}" Margin="0,6,0,0"/>
+                    <TextBlock Text="v1.0.2 · every change is revertible" FontSize="10.5" Foreground="{StaticResource TextTertiary}" Margin="0,6,0,0"/>
                 </StackPanel>
 
                 <!-- Nav -->
