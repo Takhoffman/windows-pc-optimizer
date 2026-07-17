@@ -28,17 +28,29 @@ Every tweak is labeled **Safe / Moderate / Advanced**, and anything needing a re
 
 ## Install
 
-Requires Windows 10/11. No .NET runtime install needed — the published exe is self-contained.
+Requires Windows 10/11. No .NET runtime install needed — everything is self-contained.
+
+### Windows installer (recommended)
 
 ```powershell
 git clone <this repository's URL>
 cd windows-pc-optimizer
+.\tools\build-installer.ps1
+```
+
+This publishes the app and produces `Setup\dist\VelocitySetup.msi` — a normal Windows installer with a license/install-directory wizard, a Start Menu entry, a Desktop shortcut, and a "Launch Velocity now" option on the last page. Double-click the MSI to install (it will prompt for admin rights, since it installs to Program Files and the app itself always needs elevation to run). It shows up in **Settings > Apps** like any other program, and uninstalling from there removes everything cleanly.
+
+Building the MSI yourself requires the [WiX Toolset](https://wixtoolset.org/) v5 CLI (`dotnet tool install --global wix --version 5.0.2`, plus the `WixToolset.UI.wixext` and `WixToolset.Util.wixext` extensions at the same version) — WiX v7+ requires accepting its paid Open Source Maintenance Fee EULA, so this project pins to v5, which doesn't.
+
+### Portable per-user install (no MSI/admin needed to install)
+
+```powershell
 .\install.ps1
 ```
 
-This builds a release exe, then installs Velocity to `%LocalAppData%\Programs\Velocity` with Start Menu and Desktop shortcuts, plus a normal entry in **Settings > Apps** for uninstalling. No admin rights are needed for install itself — Velocity requests elevation only when you launch it, since registry, `powercfg`, and service changes require it.
+Installs to `%LocalAppData%\Programs\Velocity` with its own Start Menu/Desktop shortcuts and an **Settings > Apps** uninstall entry, without needing admin rights for the install step itself (Velocity still elevates when it launches). Run `uninstall.ps1` from the install directory, or use Settings > Apps, to remove it.
 
-To uninstall: use **Settings > Apps > Velocity**, or run `uninstall.ps1` from the install directory. Uninstalling does not revert any tweaks — use Velocity's own **Revert everything** first if you want your original Windows settings back.
+Either way, uninstalling does not revert any tweaks — use Velocity's own **Revert everything** first if you want your original Windows settings back.
 
 ### Build from source without installing
 

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <Package Name="Velocity - Gaming PC Optimizer"
+            Manufacturer="Tak Hoffman"
+            Version="1.0.0"
+            UpgradeCode="A3079EA3-01EB-4FF3-8094-04A7A8D43D01"
+            Language="1033"
+            Scope="perMachine"
+            InstallerVersion="500">
+
+    <SummaryInformation Description="Velocity - Gaming PC Optimizer Setup" Manufacturer="Tak Hoffman"/>
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Velocity is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- ARP (Add/Remove Programs) -->
+    <Property Id="ARPPRODUCTICON" Value="AppIcon.ico" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/takhoffman/windows-pc-optimizer" />
+    <Property Id="ARPNOREPAIR" Value="1" />
+    <Icon Id="AppIcon.ico" SourceFile="$(var.PublishDir)\..\Assets\app.ico" />
+
+    <!-- Let the user choose whether to launch Velocity, and drop a desktop shortcut -->
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch Velocity now" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Velocity" />
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ProgramMenuVelocity" Name="Velocity" />
+    </StandardDirectory>
+    <StandardDirectory Id="DesktopFolder" />
+
+    <Feature Id="MainFeature" Title="Velocity" Level="1" AllowAdvertise="no">
+      <ComponentRef Id="AppFiles" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="DesktopShortcut" />
+    </Feature>
+
+    <Component Id="AppFiles" Directory="INSTALLFOLDER" Guid="FDE244E7-E93F-461C-AC43-9FAC76E45C46">
+      <File Id="VelocityExe" Source="$(var.PublishDir)\Velocity.exe" KeyPath="yes">
+        <Shortcut Id="StartMenuShortcutFile" Directory="ProgramMenuVelocity"
+                  Name="Velocity" WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon.ico" Advertise="yes" />
+      </File>
+    </Component>
+
+    <Component Id="StartMenuShortcut" Directory="ProgramMenuVelocity" Guid="3C1064B2-C080-4EFD-887E-408D509E0652">
+      <RemoveFolder Id="RemoveProgramMenuVelocity" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\Velocity" Name="startmenu" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="DesktopShortcut" Directory="DesktopFolder" Guid="7E46302F-2EB3-462D-B7B6-94D1C502B5E8">
+      <Shortcut Id="DesktopShortcutFile" Name="Velocity"
+                Target="[INSTALLFOLDER]Velocity.exe" WorkingDirectory="INSTALLFOLDER"
+                Icon="AppIcon.ico" />
+      <RegistryValue Root="HKCU" Key="Software\Velocity" Name="desktop" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <!-- Wizard UI: license + install-directory picker + optional launch on exit -->
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="INSTALLFOLDER" />
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+    <WixVariable Id="WixUIBannerBmp" Value="Banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="Dialog.bmp" />
+
+    <Property Id="WixShellExecTarget" Value="[#VelocityExe]" />
+    <CustomAction Id="LaunchApplication" DllEntry="WixShellExec" Impersonate="yes" BinaryRef="Wix4UtilCA_X86" />
+    <InstallExecuteSequence>
+    </InstallExecuteSequence>
+    <UI>
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApplication"
+               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed" />
+    </UI>
+
+  </Package>
+</Wix>

@@ -1,5 +1,8 @@
 bin/
 obj/
 publish/
+Setup/dist/
+.wix/
+*.wixpdb
 *.user
 .vs/
